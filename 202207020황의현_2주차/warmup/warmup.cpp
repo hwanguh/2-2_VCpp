@@ -8,7 +8,7 @@ int main(){
     while (1) {
         int sum = 0;
         int input = 0;
-        int comand = 0;
+        int command = 0;
 
         cout << "command>";
         do {
@@ -16,7 +16,7 @@ int main(){
             if(33 <= input && 126 >= input){
                 cout << (char)input;
                 if (0 == sum) {
-                    comand = input;
+                    command = input;
                 }
                 sum++;
             }
@@ -32,17 +32,17 @@ int main(){
             return 0;
         }
 
-        if (1==sum && ('q' == comand || 'w' == comand || 'e' == comand || 'r' == comand)) {
-            if ('q' == comand) {
+        if (1==sum && ('q' == command || 'w' == command || 'e' == command || 'r' == command)) {
+            if ('q' == command) {
                 cout << "qwer 화이팅" << endl;
             }
-            else if ('w' == comand) {
+            else if ('w' == command) {
                 cout << "과제 너무 좋다" << endl;
             }
-            else if ('e' == comand) {
+            else if ('e' == command) {
                 cout << "담주부턴 과제량 3배다" << endl;
             }
-            else if ('r' == comand) {
+            else if ('r' == command) {
                 cout << "행복합니다." << endl;
             }
         }
