@@ -56,10 +56,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		isMouseLButtonPressed = 0;
 	}
 	else if (uMsg == WM_RBUTTONDOWN
-			&& ((startPoint.x > LOWORD(lParam) && endPoint.x < LOWORD(lParam)
-			&& startPoint.y > HIWORD(lParam) && endPoint.y < HIWORD(lParam))
-			|| (startPoint.x < LOWORD(lParam) && endPoint.x > LOWORD(lParam)
-				&& startPoint.y < HIWORD(lParam) && endPoint.y > HIWORD(lParam)))
+			&& ((startPoint.x >= LOWORD(lParam) && endPoint.x <= LOWORD(lParam)
+			&& startPoint.y >= HIWORD(lParam) && endPoint.y <= HIWORD(lParam))
+			|| (startPoint.x <= LOWORD(lParam) && endPoint.x >= LOWORD(lParam)
+				&& startPoint.y <= HIWORD(lParam) && endPoint.y >= HIWORD(lParam)))
 		) {
 		startMovePoint.x = LOWORD(lParam);
 		startMovePoint.y = HIWORD(lParam);
@@ -77,10 +77,18 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			HDC hdc = GetDC(hwnd);
 			RECT rect;
 			HBRUSH hBrush = (HBRUSH)COLOR_WINDOW;
+			int boX = 1;
+			int boY = 1;
 			GetClientRect(hwnd, &rect);
 			FillRect(hdc, &rect, hBrush);
 			MoveToEx(hdc, startPoint.x, startPoint.y, NULL);
-			rect = { startPoint.x+1, startPoint.y + 1, endPoint.x - 1, endPoint.y - 1 };
+			if (startPoint.x > endPoint.x) {
+				boX = -1;
+			}
+			if (startPoint.y > endPoint.y) {
+				boY = -1;
+			}
+			rect = { startPoint.x + boX, startPoint.y + boY, endPoint.x - boX, endPoint.y - boY };
 			hBrush = (HBRUSH)CreateSolidBrush(RGB(255, 0, 255));
 			Rectangle(hdc, startPoint.x, startPoint.y, endPoint.x, endPoint.y);
 			FillRect(hdc, &rect, hBrush);
@@ -129,7 +137,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	// 윈도우 생성
 	HWND hwnd = CreateWindow(
 		wc.lpszClassName,
-		TEXT("컴소 Application"),
+		TEXT("VC++ 과제 사각형 그리기 Application"),
 		WS_OVERLAPPEDWINDOW,
 		0, 0,
 		width, height,
