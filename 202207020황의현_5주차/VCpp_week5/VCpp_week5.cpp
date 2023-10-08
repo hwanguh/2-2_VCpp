@@ -129,7 +129,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	}
 
 	// Window viewport 영역 조정
-	RECT rect = { 150, 100, 800, 600 };
+	RECT rect = { 0, 0, 800, 600 };
 	AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, 0);
 	int width = rect.right - rect.left;
 	int height = rect.bottom - rect.top;
@@ -137,7 +137,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	// 윈도우 생성
 	HWND hwnd = CreateWindow(
 		wc.lpszClassName,
-		TEXT("VC++ 과제 사각형 그리기 Application"),
+		TEXT("202207020황의현"),
 		WS_OVERLAPPEDWINDOW,
 		0, 0,
 		width, height,
