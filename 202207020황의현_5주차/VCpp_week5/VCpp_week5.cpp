@@ -95,6 +95,17 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		}
 		ReleaseDC(hwnd, hdc);
 	}
+	else if (uMsg == WM_GETMINMAXINFO) {        // 윈도우 사이즈 변경시 발생하는 이벤트
+		((LPMINMAXINFO)lParam)->ptMinTrackSize.x = 800;        // 윈도우 최소 사이즈 x
+		((LPMINMAXINFO)lParam)->ptMinTrackSize.y = 600;        // 윈도우 최소 사이즈 y
+		((LPMINMAXINFO)lParam)->ptMaxTrackSize.x = 800;        // 윈도우 최대 사이즈 x
+		((LPMINMAXINFO)lParam)->ptMaxTrackSize.y = 600;        // 윈도우 최대 사이즈 y
+
+		((LPMINMAXINFO)lParam)->ptMaxSize.x = 800;            // MAX 버튼 클릭시 최대 사이즈 x
+		((LPMINMAXINFO)lParam)->ptMaxSize.y = 600;            // MAX 버튼 클릭시 최대 사이즈 y
+		((LPMINMAXINFO)lParam)->ptMaxPosition.x = 800;        // MAX 버튼 클릭시 x위치
+		((LPMINMAXINFO)lParam)->ptMaxPosition.y = 600;			// MAX 버튼 클릭시 y위치
+	}
 	else if (uMsg == WM_DESTROY) {
 		PostQuitMessage(0);
 	}
