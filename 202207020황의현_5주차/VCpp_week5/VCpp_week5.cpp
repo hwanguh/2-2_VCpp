@@ -56,10 +56,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		isMouseLButtonPressed = 0;
 	}
 	else if (uMsg == WM_RBUTTONDOWN
-			&& ((startPoint.x >= LOWORD(lParam) && endPoint.x <= LOWORD(lParam)
-			&& startPoint.y >= HIWORD(lParam) && endPoint.y <= HIWORD(lParam))
-			|| (startPoint.x <= LOWORD(lParam) && endPoint.x >= LOWORD(lParam)
-				&& startPoint.y <= HIWORD(lParam) && endPoint.y >= HIWORD(lParam)))
+			&& ((startPoint.x >= LOWORD(lParam) && endPoint.x <= LOWORD(lParam))
+				|| (startPoint.x <= LOWORD(lParam) && endPoint.x >= LOWORD(lParam)))
+			&& ((startPoint.y >= HIWORD(lParam) && endPoint.y <= HIWORD(lParam))
+			|| (startPoint.y <= HIWORD(lParam) && endPoint.y >= HIWORD(lParam)))
 		) {
 		startMovePoint.x = LOWORD(lParam);
 		startMovePoint.y = HIWORD(lParam);
