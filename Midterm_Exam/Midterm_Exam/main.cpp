@@ -45,6 +45,8 @@ int drawingTop;
 int drawingRight;
 int drawingBottom;
 
+RECT drawingRect;
+
 void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
     HBRUSH hBrush = CreateSolidBrush(RGB(255, 240, 200));
     SelectObject(hdc, hBrush);
@@ -52,7 +54,7 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
     hBrush = CreateSolidBrush(RGB(255, 255, 255));
     SelectObject(hdc, hBrush);
     Rectangle(hdc, drawingLeft, drawingTop, drawingRight, drawingBottom);
-    if (mouse.isMouseLButtonPressed) {
+    if (mouse.isMouseLButtonPressed && mouse.isMouseInDrawBox) {
         hBrush = CreateSolidBrush(RGB(R, G, B)); // 빨간색 박스
         SelectObject(hdc, hBrush);
         //그리기
@@ -78,6 +80,16 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
         SelectObject(hdc, hBrush);
         
         if (fig.isSpace) {
+            MoveToEx(hdc, 110, 190, NULL);
+            LineTo(hdc, 130, 200);
+            MoveToEx(hdc, 130, 200, NULL);
+            LineTo(hdc, 110, 210);
+            MoveToEx(hdc, 280, 190, NULL);
+            LineTo(hdc, 260, 200);
+            MoveToEx(hdc, 260, 200, NULL);
+            LineTo(hdc, 280, 210);
+        }
+        else {
             Ellipse(hdc, 120, 195, 130, 205);
             Ellipse(hdc, 270, 195, 280, 205);
         }
@@ -101,8 +113,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_KEYDOWN:
         if (32 == wParam){
             fig.isSpace = 1;
-            InvalidateRect(hWnd, NULL, true);
+            InvalidateRect(hWnd, &drawingRect, true);
         }
+        break;
+    case WM_KEYUP:
+        fig.isSpace = 0;
+        InvalidateRect(hWnd, &drawingRect, true);
         break;
     case WM_LBUTTONDOWN:
         mouse.startPoint.x = LOWORD(lParam);
@@ -123,7 +139,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
         if (mouse.isMouseLButtonPressed) {
             mouse.endPoint.x = LOWORD(lParam);
             mouse.endPoint.y = HIWORD(lParam);
-            InvalidateRect(hWnd, NULL, true);
+            InvalidateRect(hWnd, &drawingRect, true);
         }
         break;
     case WM_LBUTTONUP:
@@ -138,21 +154,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             fig.isBox = 1;
             fig.isWheel = 0;
             fig.isBono = 0;
+            InvalidateRect(hWnd, &drawingRect, true);
             break;
         case 2:
             // 두 번째 버튼 클릭
             fig.isBox = 0;
             fig.isWheel = 1;
             fig.isBono = 0;
+            InvalidateRect(hWnd, &drawingRect, true);
             break;
         case 3:
             // 세 번째 버튼 클릭
             fig.isBox = 0;
             fig.isWheel = 0;
             fig.isBono = 1;
-            InvalidateRect(hWnd, NULL, true);
+            InvalidateRect(hWnd, &drawingRect, true);
             break;
         }
+        SetFocus(hWnd); //키보드 포커스 없애기
         break;
     case WM_PAINT:
         PAINTSTRUCT ps;
@@ -217,6 +236,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     drawingTop = boxTop + padding + 80;
     drawingRight = boxRight - padding;
     drawingBottom = boxBottom - padding;
+
+    drawingRect = { drawingLeft ,drawingTop ,drawingRight ,drawingBottom };
 
     hButton1 = CreateWindow(
         L"BUTTON", L"Box", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
