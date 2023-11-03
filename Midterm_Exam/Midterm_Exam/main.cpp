@@ -19,43 +19,49 @@ struct Fig fig = { 1,0,0,0 };//선언 및 초기화
 struct Mouse {
     POINT startPoint;
     POINT endPoint;
+    POINT startMovePoint;
+    POINT endMovePoint;
     unsigned int isMouseLButtonPressed : 1;
-    unsigned int isMouseInDrawBox : 1;
+    unsigned int isMouseRButtonPressed : 1;
+    int offsetX;
+    int offsetY;
 };
-struct Mouse mouse = { {0},{0}, 0 , 0};//선언 및 초기화
+struct Mouse mouse = { {0},{0}, {0} , {0}, 0, 0, 0, 0 };//선언 및 초기화
 
 //RGB색깔 변수
 unsigned char R = 255;
 unsigned char G = 0;
 unsigned char B = 0;
 
-int margin = 8;
-int padding = 8;
-int buttonWidth = 160;
-int buttonHeight = 64;
-int buttonMargin = 16;
+//영역 관련 변수
+const unsigned char margin = 8;
+const unsigned char padding = 8;
 
-int boxLeft;
-int boxTop;
-int boxRight;
-int boxBottom;
+const unsigned char buttonMargin = 16;
+const unsigned char buttonHeight = 64;
+unsigned char buttonWidth;
 
-int drawingLeft;
-int drawingTop;
-int drawingRight;
-int drawingBottom;
+const unsigned char boxLeft = margin;
+const unsigned char boxTop = margin;
+short boxRight;
+short boxBottom;
 
+const unsigned char drawingLeft = boxLeft + padding;
+const unsigned char drawingTop = boxTop + padding + 80;
+short drawingRight;
+short drawingBottom;
+
+//그림 관련 변수
 RECT drawingRect;
+HBRUSH hBrushBack = CreateSolidBrush(RGB(255, 240, 200));
+HBRUSH hBrushDraw = CreateSolidBrush(RGB(255, 255, 255));
+HBRUSH hBrush;
+HDC hdc;
+PAINTSTRUCT ps;
 
 void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
-    HBRUSH hBrush = CreateSolidBrush(RGB(255, 240, 200));
-    SelectObject(hdc, hBrush);
-    Rectangle(hdc, boxLeft, boxTop, boxRight, boxBottom);
-    hBrush = CreateSolidBrush(RGB(255, 255, 255));
-    SelectObject(hdc, hBrush);
-    Rectangle(hdc, drawingLeft, drawingTop, drawingRight, drawingBottom);
-    if (mouse.isMouseLButtonPressed && mouse.isMouseInDrawBox) {
-        hBrush = CreateSolidBrush(RGB(R, G, B)); // 빨간색 박스
+    hBrush = CreateSolidBrush(RGB(R, G, B));
+    if (mouse.isMouseLButtonPressed || mouse.isMouseRButtonPressed) {  
         SelectObject(hdc, hBrush);
         //그리기
         if (fig.isBox) {
@@ -108,10 +114,9 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
 
 // 윈도우 프로시저
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    HDC hdc;
     switch (message) {
     case WM_KEYDOWN:
-        if (32 == wParam){
+        if (32 == wParam && fig.isBono){
             fig.isSpace = 1;
             InvalidateRect(hWnd, &drawingRect, true);
         }
@@ -131,21 +136,50 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             drawingRight >= LOWORD(lParam) &&
             drawingBottom >= HIWORD(lParam)) {
             SetCursor(LoadCursor(NULL, IDC_CROSS));
-            mouse.isMouseInDrawBox = 1;
-        }
-        else {
-            mouse.isMouseInDrawBox = 0;
-        }
-        if (mouse.isMouseLButtonPressed) {
-            mouse.endPoint.x = LOWORD(lParam);
-            mouse.endPoint.y = HIWORD(lParam);
-            InvalidateRect(hWnd, &drawingRect, true);
+            if (mouse.isMouseLButtonPressed) {
+                mouse.endPoint.x = LOWORD(lParam);
+                mouse.endPoint.y = HIWORD(lParam);
+                InvalidateRect(hWnd, &drawingRect, true);
+            }
+            else if (mouse.isMouseRButtonPressed) {
+                mouse.endMovePoint.x = LOWORD(lParam);
+                mouse.endMovePoint.y = HIWORD(lParam);
+                mouse.offsetX = mouse.endMovePoint.x - mouse.startMovePoint.x;
+                mouse.offsetY = mouse.endMovePoint.y - mouse.startMovePoint.y;
+                if (fig.isBox) {
+                    mouse.startPoint.x += mouse.offsetX;
+                    mouse.endPoint.x += mouse.offsetX;
+                    mouse.startPoint.y += mouse.offsetY;
+                    mouse.endPoint.y += mouse.offsetY;
+                }
+                else if (fig.isWheel) {
+                    mouse.endPoint.x += mouse.offsetX;
+                    mouse.endPoint.y += mouse.offsetX;
+                }
+                InvalidateRect(hWnd, &drawingRect, true);
+                mouse.startMovePoint = mouse.endMovePoint;
+            }
         }
         break;
     case WM_LBUTTONUP:
         mouse.endPoint.x = LOWORD(lParam);
         mouse.endPoint.y = HIWORD(lParam);
         mouse.isMouseLButtonPressed = 0;
+        break;
+    case WM_RBUTTONDOWN:
+        if (((mouse.startPoint.x >= LOWORD(lParam) && mouse.endPoint.x <= LOWORD(lParam))
+            || (mouse.startPoint.x <= LOWORD(lParam) && mouse.endPoint.x >= LOWORD(lParam)))
+            && (((mouse.startPoint.y >= HIWORD(lParam) && mouse.endPoint.y <= HIWORD(lParam))
+                || (mouse.startPoint.y <= HIWORD(lParam) && mouse.endPoint.y >= HIWORD(lParam))))){
+            mouse.startMovePoint.x = LOWORD(lParam);
+            mouse.startMovePoint.y = HIWORD(lParam);
+            mouse.isMouseRButtonPressed = 1;
+        }
+        break;
+    case WM_RBUTTONUP:
+        mouse.endMovePoint.x = LOWORD(lParam);
+        mouse.endMovePoint.y = HIWORD(lParam);
+        mouse.isMouseRButtonPressed = 0;
         break;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
@@ -154,29 +188,33 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             fig.isBox = 1;
             fig.isWheel = 0;
             fig.isBono = 0;
-            InvalidateRect(hWnd, &drawingRect, true);
             break;
         case 2:
             // 두 번째 버튼 클릭
             fig.isBox = 0;
             fig.isWheel = 1;
             fig.isBono = 0;
-            InvalidateRect(hWnd, &drawingRect, true);
             break;
         case 3:
             // 세 번째 버튼 클릭
             fig.isBox = 0;
             fig.isWheel = 0;
             fig.isBono = 1;
-            InvalidateRect(hWnd, &drawingRect, true);
             break;
         }
         SetFocus(hWnd); //키보드 포커스 없애기
+        InvalidateRect(hWnd, &drawingRect, true); //그림 영역 무효화
         break;
     case WM_PAINT:
-        PAINTSTRUCT ps;
         hdc = BeginPaint(hWnd, &ps);
+
+        SelectObject(hdc, hBrushBack);
+        Rectangle(hdc, boxLeft, boxTop, boxRight, boxBottom);
+        SelectObject(hdc, hBrushDraw);
+        Rectangle(hdc, drawingLeft, drawingTop, drawingRight, drawingBottom);
+
         Draw(hWnd, hdc, wParam);
+
         EndPaint(hWnd, &ps);
         break;
     case WM_DESTROY:
@@ -223,17 +261,11 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     RECT clientRect;
     GetClientRect(hWnd, &clientRect);
 
-    margin = 8;
-    padding = 8;
-    buttonWidth = 160;
-    buttonHeight = 64;
-    buttonMargin = 16;
-    boxLeft = margin;
-    boxTop = margin;
-    boxRight = clientRect.right - margin;
-    boxBottom = clientRect.bottom - margin;
-    drawingLeft = boxLeft + padding;
-    drawingTop = boxTop + padding + 80;
+    boxRight = (short)(clientRect.right - margin);
+    boxBottom = (short)(clientRect.bottom - margin);
+
+    buttonWidth = (boxRight - margin - buttonMargin * 2) / 5;
+
     drawingRight = boxRight - padding;
     drawingBottom = boxBottom - padding;
 
@@ -241,19 +273,19 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
 
     hButton1 = CreateWindow(
         L"BUTTON", L"Box", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        16, 16, 147, 64, hWnd, (HMENU)1, hInstance, NULL);
+        buttonMargin + margin, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)1, hInstance, NULL);
     hButton2 = CreateWindow(
-        L"BUTTON", L"Wheel", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        163, 16, 147, 64, hWnd, (HMENU)2, hInstance, NULL);
+        L"BUTTON", L"Circle", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        buttonMargin + margin + buttonWidth, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)2, hInstance, NULL);
     hButton3 = CreateWindow(
         L"BUTTON", L"Bonobono", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        313, 16, 147, 64, hWnd, (HMENU)3, hInstance, NULL);
+        buttonMargin + margin + buttonWidth*2, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)3, hInstance, NULL);
     hButton4 = CreateWindow(
-        L"BUTTON", L"Line", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        463, 16, 147, 64, hWnd, (HMENU)4, hInstance, NULL);
+        L"BUTTON", L"button4", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        buttonMargin + margin + buttonWidth*3, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)4, hInstance, NULL);
     hButton5 = CreateWindow(
-        L"BUTTON", L"Line", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-        613, 16, 147, 64, hWnd, (HMENU)5, hInstance, NULL);
+        L"BUTTON", L"button5", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+        buttonMargin + margin + buttonWidth*4, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)5, hInstance, NULL);
 
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
