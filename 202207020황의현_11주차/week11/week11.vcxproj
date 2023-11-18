@@ -131,7 +131,6 @@
     <ClCompile Include="week11.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="node.h" />
     <ClInclude Include="stack.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
