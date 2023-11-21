@@ -4,32 +4,12 @@
 #pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console")
 #endif
 
-#include <windows.h>
-
 #include "yuhanCG.h"
+#include "Fig.h"
+#include "Mouse.h"
 
-// 도형 선택 구조체
-struct Fig {
-    unsigned int isBox : 1;
-    unsigned int isWheel : 1;
-    unsigned int isBono : 1;
-    unsigned int isSpace : 1;
-    unsigned int isRyan : 1;
-};
-struct Fig fig = { 1,0,0,0,0 };//선언 및 초기화
-
-//마우스 관련 구조체
-struct Mouse {
-    POINT startPoint;
-    POINT endPoint;
-    POINT startMovePoint;
-    POINT endMovePoint;
-    unsigned int isMouseLButtonPressed : 1;
-    unsigned int isMouseRButtonPressed : 1;
-    int offsetX;
-    int offsetY;
-};
-struct Mouse mouse = { {0},{0}, {0} , {0}, 0, 0, 0, 0 };//선언 및 초기화
+Fig fig;
+Mouse mouse;
 
 //RGB색깔 변수
 unsigned char R = 255;
@@ -66,21 +46,23 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
     SelectObject(hdc, hBrushDraw);
     Rectangle(hdc, drawingLeft, drawingTop, drawingRight, drawingBottom);
     
-    if (mouse.isMouseLButtonPressed || mouse.isMouseRButtonPressed) {
+    if (mouse.getIsMouseLButtonPressed() || mouse.getIsMouseRButtonPressed()) {
         SelectObject(hdc, hBrush);
+        POINT startPoint = mouse.getStartPoint();
+        POINT endPoint = mouse.getEndPoint();
         //그리기
-        if (fig.isBox) {
-            Rectangle(hdc, mouse.startPoint.x, mouse.startPoint.y, mouse.endPoint.x, mouse.endPoint.y);
+        if (fig.getBox()) {
+            Rectangle(hdc, startPoint.x, startPoint.y, endPoint.x, endPoint.y);
         }
-        else if (fig.isWheel) {
-            Ellipse(hdc, mouse.startPoint.x, mouse.startPoint.y, mouse.endPoint.x, mouse.endPoint.y);
+        else if (fig.getWheel()) {
+            Ellipse(hdc, startPoint.x, startPoint.y, endPoint.x, endPoint.y);
         }
-        else if (fig.isRyan) {
-            CG.DrawRyan(hWnd, hdc, mouse.startPoint.x, mouse.startPoint.y, mouse.endPoint.x, mouse.endPoint.y);
+        else if (fig.getRyan()) {
+            CG.DrawRyan(hWnd, hdc, startPoint.x, startPoint.y, endPoint.x, endPoint.y);
         }
     }
-    else if (fig.isBono) {
-        CG.DrawBonobono(hWnd, hdc, fig.isSpace);
+    else if (fig.getBono()) {
+        CG.DrawBonobono(hWnd, hdc, fig.getSpace());
     }
     DeleteObject(hBrush);
     DeleteObject(hBrushBack);
@@ -91,19 +73,18 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_KEYDOWN:
-        if (32 == wParam && fig.isBono) {
-            fig.isSpace = 1;
+        if (32 == wParam && fig.getBono()) {
+            fig.onSpace();
             InvalidateRect(hWnd, &drawingRect, true);
         }
         break;
     case WM_KEYUP:
-        fig.isSpace = 0;
+        fig.offSpace();
         InvalidateRect(hWnd, &drawingRect, true);
         break;
     case WM_LBUTTONDOWN:
-        mouse.startPoint.x = LOWORD(lParam);
-        mouse.startPoint.y = HIWORD(lParam);
-        mouse.isMouseLButtonPressed = 1;
+        mouse.setStartPoint(LOWORD(lParam), HIWORD(lParam));
+        mouse.onIsMouseLButtonPressed();
         break;
     case WM_MOUSEMOVE:
         if (drawingLeft <= LOWORD(lParam) &&
@@ -111,80 +92,54 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             drawingRight >= LOWORD(lParam) &&
             drawingBottom >= HIWORD(lParam)) {
             SetCursor(LoadCursor(NULL, IDC_CROSS));
-            if (mouse.isMouseLButtonPressed) {
-                mouse.endPoint.x = LOWORD(lParam);
-                mouse.endPoint.y = HIWORD(lParam);
+            if (mouse.getIsMouseLButtonPressed()) {
+                mouse.setEndPoint(LOWORD(lParam), HIWORD(lParam));
                 InvalidateRect(hWnd, &drawingRect, true);
             }
-            else if (mouse.isMouseRButtonPressed) {
-                mouse.endMovePoint.x = LOWORD(lParam);
-                mouse.endMovePoint.y = HIWORD(lParam);
-                mouse.offsetX = mouse.endMovePoint.x - mouse.startMovePoint.x;
-                mouse.offsetY = mouse.endMovePoint.y - mouse.startMovePoint.y;
-                if (fig.isBox) {
-                    mouse.startPoint.x += mouse.offsetX;
-                    mouse.endPoint.x += mouse.offsetX;
-                    mouse.startPoint.y += mouse.offsetY;
-                    mouse.endPoint.y += mouse.offsetY;
+            else if (mouse.getIsMouseRButtonPressed()) {
+                mouse.setEndMovePoint(LOWORD(lParam), HIWORD(lParam));
+                if (fig.getBox()) {
+                    mouse.moveBox();
                 }
-                else if (fig.isWheel) {
-                    mouse.endPoint.x += mouse.offsetX;
-                    mouse.endPoint.y += mouse.offsetX;
+                else if (fig.getWheel()) {
+                    mouse.moveWheel();
                 }
                 InvalidateRect(hWnd, &drawingRect, true);
-                mouse.startMovePoint = mouse.endMovePoint;
+                mouse.swapMovePoint();
             }
         }
         break;
     case WM_LBUTTONUP:
-        mouse.endPoint.x = LOWORD(lParam);
-        mouse.endPoint.y = HIWORD(lParam);
-        mouse.isMouseLButtonPressed = 0;
+        mouse.setEndPoint(LOWORD(lParam), HIWORD(lParam));
+        mouse.offIsMouseLButtonPressed();
         break;
     case WM_RBUTTONDOWN:
-        if (((mouse.startPoint.x >= LOWORD(lParam) && mouse.endPoint.x <= LOWORD(lParam))
-            || (mouse.startPoint.x <= LOWORD(lParam) && mouse.endPoint.x >= LOWORD(lParam)))
-            && (((mouse.startPoint.y >= HIWORD(lParam) && mouse.endPoint.y <= HIWORD(lParam))
-                || (mouse.startPoint.y <= HIWORD(lParam) && mouse.endPoint.y >= HIWORD(lParam))))) {
-            mouse.startMovePoint.x = LOWORD(lParam);
-            mouse.startMovePoint.y = HIWORD(lParam);
-            mouse.isMouseRButtonPressed = 1;
+        if (mouse.isInFig(LOWORD(lParam), HIWORD(lParam))) {
+            mouse.setStartMovePoint(LOWORD(lParam), HIWORD(lParam));
+            mouse.onIsMouseRButtonPressed();
         }
         break;
     case WM_RBUTTONUP:
-        mouse.endMovePoint.x = LOWORD(lParam);
-        mouse.endMovePoint.y = HIWORD(lParam);
-        mouse.isMouseRButtonPressed = 0;
+        mouse.setEndMovePoint(LOWORD(lParam), HIWORD(lParam));
+        mouse.offIsMouseRButtonPressed();
         break;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
         case 1:
             // 첫 번째 버튼 클릭
-            fig.isBox = 1;
-            fig.isWheel = 0;
-            fig.isBono = 0;
-            fig.isRyan = 0;
+            fig.setBox();
             break;
         case 2:
             // 두 번째 버튼 클릭
-            fig.isBox = 0;
-            fig.isWheel = 1;
-            fig.isBono = 0;
-            fig.isRyan = 0;
+            fig.setWheel();
             break;
         case 3:
             // 세 번째 버튼 클릭
-            fig.isBox = 0;
-            fig.isWheel = 0;
-            fig.isBono = 1;
-            fig.isRyan = 0;
+            fig.setBono();
             break;
         case 4:
             // 네 번째 버튼 클릭
-            fig.isBox = 0;
-            fig.isWheel = 0;
-            fig.isBono = 0;
-            fig.isRyan = 1;
+            fig.setRyan();
             break;
         }
         SetFocus(hWnd); //키보드 포커스 없애기
