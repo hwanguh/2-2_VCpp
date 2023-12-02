@@ -8,24 +8,23 @@ stack::stack() {
 
 void stack::push(POINT startPoint, POINT endPoint, Fig fig) {
 	node* prev_node = top;
-	top = new node{ startPoint, endPoint, fig, prev_node };
+	top = new node{ startPoint, endPoint,fig , prev_node };
 }
 
-void stack::pop(POINT* startPointP, POINT* endPointP, Fig* figP) {
+bool stack::pop(POINT* startPoint, POINT* endPoint, Fig* fig) {
 	if (NULL != top) {
-		*startPointP = top->startPoint;
-		*endPointP = top->endPoint;
-		*figP = top->fig;
+		*startPoint = top->startPoint;
+		*endPoint = top->endPoint;
+		*fig = top->fig;
 		node* prev_node = top->prev_node;
 		delete top;
 		top = prev_node;
+		return 1;
 	}
 	else {
-		
-		figP->Fig::Fig();
+		return 0;
 	}
 }
-
 stack::~stack() {
 	while (NULL != top) {
 		node* prev_node = top->prev_node;

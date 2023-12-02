@@ -55,10 +55,10 @@ public:
         startMovePoint = endMovePoint;
     }
     unsigned int isInFig(long x, long y) {
-        return(unsigned int)((startPoint.x >= x && endPoint.x <= x)
-            || (startPoint.x <= x && endPoint.x >= x))
-            && (((startPoint.y >= y && endPoint.y <= y)
-                || (startPoint.y <= y && endPoint.y >= y)));
+        return(unsigned int)(((startPoint.x >= x) & (endPoint.x <= x))
+            | ((startPoint.x <= x) & (endPoint.x >= x)))
+            & ((((startPoint.y >= y) & (endPoint.y <= y))
+                | ((startPoint.y <= y) & (endPoint.y >= y))));
     }
     void onIsMouseLButtonPressed() {
         isMouseLButtonPressed = 1;

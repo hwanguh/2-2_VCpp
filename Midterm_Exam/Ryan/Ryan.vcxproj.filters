@@ -21,10 +21,10 @@
     <ClCompile Include="yuhanCG.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="stack.cpp">
+    <ClCompile Include="Fig.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="Fig.cpp">
+    <ClCompile Include="stack.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -32,13 +32,13 @@
     <ClInclude Include="yuhanCG.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="stack.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="Fig.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Mouse.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="stack.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

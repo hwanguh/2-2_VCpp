@@ -4,7 +4,6 @@ Fig::Fig() {
     isBox = 1;
     isWheel = 0;
     isBono = 0;
-    isSpace = 0;
     isRyan = 0;
 }
 void Fig::setBox() {

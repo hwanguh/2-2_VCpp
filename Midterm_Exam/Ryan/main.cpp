@@ -5,11 +5,15 @@
 #endif
 
 #include "yuhanCG.h"
-#include "Fig.h"
+#include "stack.h"
 #include "Mouse.h"
 
 Fig fig;
 Mouse mouse;
+stack undo;
+stack redo;
+bool key[256] = { 0, };
+bool doFlag = 0;
 
 //RGB»ö±ò º¯¼ö
 unsigned char R = 255;
@@ -46,7 +50,7 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
     SelectObject(hdc, hBrushDraw);
     Rectangle(hdc, drawingLeft, drawingTop, drawingRight, drawingBottom);
     
-    if (mouse.getIsMouseLButtonPressed() || mouse.getIsMouseRButtonPressed()) {
+    if (mouse.getIsMouseLButtonPressed() || mouse.getIsMouseRButtonPressed()|| doFlag) {
         SelectObject(hdc, hBrush);
         POINT startPoint = mouse.getStartPoint();
         POINT endPoint = mouse.getEndPoint();
@@ -62,7 +66,7 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
         }
     }
     else if (fig.getBono()) {
-        CG.DrawBonobono(hWnd, hdc, fig.getSpace());
+        CG.DrawBonobono(hWnd, hdc, key[VK_SPACE]);
     }
     DeleteObject(hBrush);
     DeleteObject(hBrushBack);
@@ -73,14 +77,46 @@ void Draw(HWND hWnd, HDC hdc, WPARAM wParam) {
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
     switch (message) {
     case WM_KEYDOWN:
-        if (32 == wParam && fig.getBono()) {
-            fig.onSpace();
+        key[wParam] = 1;
+        if (key[VK_SPACE] && fig.getBono()) {
+            undo.push(mouse.getStartPoint(), mouse.getEndPoint(), fig);
             InvalidateRect(hWnd, &drawingRect, true);
+        }
+        if (key[VK_CONTROL]) {
+            POINT start;
+            POINT end;
+            if (undo.pop(&start, &end, &fig)) {
+                redo.push(mouse.getStartPoint(), mouse.getEndPoint(), fig);
+                mouse.setStartPoint(start.x, start.y);
+                mouse.setEndPoint(end.x, end.y);
+                doFlag = 1;
+                InvalidateRect(hWnd, &drawingRect, true);
+            }
+            else {
+                mouse.setStartPoint(0, 0);
+                mouse.setEndPoint(0, 0);
+                doFlag = 1;
+                InvalidateRect(hWnd, &drawingRect, true);
+            }
+        }
+        if (key[VK_SHIFT]) {
+            POINT start;
+            POINT end;
+            if (redo.pop(&start, &end, &fig)) {
+                undo.push(mouse.getStartPoint(), mouse.getEndPoint(), fig);
+                mouse.setStartPoint(start.x, start.y);
+                mouse.setEndPoint(end.x, end.y);
+                doFlag = 1;
+                InvalidateRect(hWnd, &drawingRect, true);
+            }
         }
         break;
     case WM_KEYUP:
-        fig.offSpace();
-        InvalidateRect(hWnd, &drawingRect, true);
+        key[wParam] = 0;
+        doFlag = 0;
+        if (fig.getBono()) {
+            InvalidateRect(hWnd, &drawingRect, true);
+        }
         break;
     case WM_LBUTTONDOWN:
         mouse.setStartPoint(LOWORD(lParam), HIWORD(lParam));
@@ -112,6 +148,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_LBUTTONUP:
         mouse.setEndPoint(LOWORD(lParam), HIWORD(lParam));
         mouse.offIsMouseLButtonPressed();
+        redo.~stack();
+        undo.push(mouse.getStartPoint(), mouse.getEndPoint(), fig);
         break;
     case WM_RBUTTONDOWN:
         if (mouse.isInFig(LOWORD(lParam), HIWORD(lParam))) {
@@ -122,6 +160,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
     case WM_RBUTTONUP:
         mouse.setEndMovePoint(LOWORD(lParam), HIWORD(lParam));
         mouse.offIsMouseRButtonPressed();
+        redo.~stack();
+        undo.push(mouse.getStartPoint(), mouse.getEndPoint(), fig);
         break;
     case WM_COMMAND:
         switch (LOWORD(wParam)) {
@@ -221,7 +261,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmd
     hButton5 = CreateWindow(
         L"BUTTON", L"button5", WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
         buttonMargin + margin + buttonWidth * 4, buttonMargin + margin, buttonWidth, buttonHeight, hWnd, (HMENU)5, hInstance, NULL);
-
     ShowWindow(hWnd, nCmdShow);
     UpdateWindow(hWnd);
 

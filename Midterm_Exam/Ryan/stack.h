@@ -1,6 +1,8 @@
 #pragma once
 
+#include <windows.h>
 
+#include "Fig.h"
 
 class node
 {
@@ -18,6 +20,6 @@ private:
 public:
     stack();
     void push(POINT startPoint, POINT endPoint, Fig fig);
-    void pop(POINT* startPointP, POINT* endPointP, Fig* figP);
+    bool pop(POINT* startPoint, POINT* endPoint, Fig* fig);
     ~stack();
 };
